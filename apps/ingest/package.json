@@ -4,10 +4,30 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "tsx src/index.ts",
+    "start": "tsx src/index.ts",
+    "fake-events": "tsx scripts/fake-events.ts",
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
+  "dependencies": {
+    "@voxobs/schema": "workspace:*",
+    "express": "^4.21.2",
+    "pg": "^8.13.1",
+    "ws": "^8.18.0",
+    "zod": "^3.24.1"
+  },
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/node": "^20.17.10",
-    "typescript": "^5.7.3"
+    "@types/pg": "^8.11.10",
+    "@types/supertest": "^6.0.2",
+    "@types/ws": "^8.5.13",
+    "@voxobs/sdk": "workspace:*",
+    "supertest": "^7.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
   }
 }

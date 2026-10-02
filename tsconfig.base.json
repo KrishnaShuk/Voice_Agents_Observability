@@ -8,9 +8,13 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "declaration": true,
-    "sourceMap": true,
     "isolatedModules": true,
-    "verbatimModuleSyntax": false
+    "verbatimModuleSyntax": false,
+    "baseUrl": ".",
+    "paths": {
+      "@voxobs/schema": ["packages/schema/src/index.ts"],
+      "@voxobs/sdk": ["packages/sdk/src/index.ts"],
+      "@voxobs/failover": ["packages/failover/src/index.ts"]
+    }
   }
 }
