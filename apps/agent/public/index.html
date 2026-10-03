@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>voxobs — voice agent</title>
+    <style>
+      body {
+        margin: 0;
+        font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+        background: #0b0e14;
+        color: #d5dbe5;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+      }
+      main {
+        width: min(560px, 90vw);
+      }
+      h1 {
+        font-size: 16px;
+        font-weight: 600;
+      }
+      button {
+        font: inherit;
+        padding: 10px 16px;
+        background: #2f6feb;
+        color: white;
+        border: 0;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      pre {
+        margin-top: 16px;
+        padding: 12px;
+        background: #11151d;
+        border: 1px solid #1e2430;
+        border-radius: 6px;
+        min-height: 120px;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>voxobs voice agent</h1>
+      <p>Join a call, speak, and watch the events land in the ingest pipeline.</p>
+      <button id="join">Join call</button>
+      <pre id="log"></pre>
+    </main>
+    <script type="module">
+      import {
+        Room,
+        RoomEvent,
+      } from "https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.esm.mjs";
+
+      const logEl = document.getElementById("log");
+      const log = (message) => {
+        logEl.textContent += `${new Date().toISOString().slice(11, 19)}  ${message}\n`;
+      };
+
+      let room;
+      document.getElementById("join").addEventListener("click", async (event) => {
+        event.target.disabled = true;
+        try {
+          const res = await fetch("/token");
+          if (!res.ok) throw new Error(`token request failed: ${res.status}`);
+          const { token, url } = await res.json();
+
+          room = new Room();
+          room.on(RoomEvent.TrackSubscribed, (track) => {
+            if (track.kind === "audio") document.body.appendChild(track.attach());
+          });
+          room.on(RoomEvent.Disconnected, () => log("disconnected"));
+
+          await room.connect(url, token);
+          await room.localParticipant.setMicrophoneEnabled(true);
+          log("joined — speak now");
+        } catch (err) {
+          log(`error: ${err}`);
+          event.target.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -70,3 +70,38 @@ Every event carries these fields:
   durations (stages overlap).
 - Transcript and response text are never shipped to the pipeline; `lk.pii.*`
   attributes are stripped at the span processor.
+
+## Turn definition (operational)
+
+A **turn** is one user utterance plus the agent's reply. `turn_start` is emitted
+when VAD detects the start of user speech (`user_state_changed → speaking`) and
+`turn_end` when the agent stops speaking (`agent_state_changed → listening|idle`
+after `speaking`). `speech_end`, `eou_delay`, `stt_latency`, `llm_ttft`,
+`llm_end`, `tts_ttfb`, and `agent_audio_start` all attach to that open turn.
+
+> **Deviation from Plan §3 source table.** The Plan says `turn_start`/`turn_end`
+> come from the `agent_turn` span. The real `agents-js@1.9.1` `agent_turn` span
+> covers the agent's *reply* generation, which starts *after* the user finishes
+> speaking and EOU is decided — but the Plan's event order is
+> `turn_start → speech_end → … → turn_end`, which requires the turn to open at or
+> before user speech end. The two cannot both hold. M3 therefore derives turn
+> boundaries from user/agent state (fully event-driven and unit-testable) and uses
+> the span processor for PII stripping and provider/model enrichment. Reconcile
+> against real spans in M9.
+
+## Sources actually used (M3)
+
+| Field | Source in M3 |
+|---|---|
+| `session_start.agentVersion`, `providers` | tracker options |
+| `turn_start`, `turn_end` | user/agent state transitions |
+| `speech_end` | `user_state_changed → listening` (VAD-driven) |
+| `stt_latency` | SDK: `speech_end` → final `user_input_transcribed` |
+| `eou_delay` | `eou_metrics.endOfUtteranceDelayMs` |
+| `llm_ttft`, `promptTokens` | `llm_metrics.ttftMs`, `.promptTokens` |
+| `llm_end`, `outputTokens` | `llm_metrics.durationMs`, `.completionTokens` |
+| `tts_ttfb` | `tts_metrics.ttfbMs` |
+| `provider`, `model` | `metrics.metadata` (fallback: configured providers) |
+| `agent_audio_start` | `agent_state_changed → speaking` |
+| PII stripping | span processor dropping `lk.pii.*` attributes |
+

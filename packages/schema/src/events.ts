@@ -137,6 +137,20 @@ export const VoiceEventSchema = z.discriminatedUnion("type", [
 
 export type VoiceEvent = z.infer<typeof VoiceEventSchema>;
 
+export type VoiceEventBase = {
+  eventId: string;
+  sessionId: string;
+  seq: number;
+  tOffsetMs: number;
+  timestamp: number;
+};
+
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
+export type VoiceEventDraft = DistributiveOmit<VoiceEvent, keyof VoiceEventBase>;
+
+export type VoiceEventType = VoiceEvent["type"];
+
 export function parseEvent(data: unknown): VoiceEvent {
   return VoiceEventSchema.parse(data);
 }

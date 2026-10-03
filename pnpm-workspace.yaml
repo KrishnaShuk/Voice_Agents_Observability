@@ -5,3 +5,5 @@ packages:
 
 onlyBuiltDependencies:
   - esbuild
+  - "@livekit/local-inference"
+  - onnxruntime-node

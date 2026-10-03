@@ -19,10 +19,20 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@opentelemetry/sdk-trace-node": "^2.11.0",
     "@voxobs/schema": "workspace:*",
     "ws": "^8.18.0"
   },
+  "peerDependencies": {
+    "@livekit/agents": ">=1.9.0"
+  },
+  "peerDependenciesMeta": {
+    "@livekit/agents": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@livekit/agents": "^1.9.1",
     "@types/node": "^20.17.10",
     "@types/ws": "^8.5.13",
     "typescript": "^5.7.3",
