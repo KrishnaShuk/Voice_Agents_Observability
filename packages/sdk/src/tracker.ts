@@ -34,6 +34,14 @@ export interface TrackerOptions {
 
 const DEFAULT_PROVIDERS: Record<Stage, string[]> = { stt: [], llm: [], tts: [] };
 
+function finite(value: unknown, fallback = 0): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function finiteInt(value: unknown, fallback = 0): number {
+  return Math.max(0, Math.trunc(finite(value, fallback)));
+}
+
 export class Tracker {
   readonly sink: TrackerSink;
 
@@ -229,7 +237,7 @@ export class Tracker {
     switch (metrics.type) {
       case "eou_metrics": {
         const turnId = this.openTurn();
-        this.emit({ type: "eou_delay", turnId, delayMs: metrics.endOfUtteranceDelayMs });
+        this.emit({ type: "eou_delay", turnId, delayMs: finite(metrics.endOfUtteranceDelayMs) });
         break;
       }
       case "llm_metrics": {
@@ -241,15 +249,15 @@ export class Tracker {
           turnId,
           provider,
           model,
-          promptTokens: metrics.promptTokens,
-          latencyMs: metrics.ttftMs,
+          promptTokens: finiteInt(metrics.promptTokens),
+          latencyMs: finite(metrics.ttftMs),
         });
         this.emit({
           type: "llm_end",
           turnId,
           provider,
-          outputTokens: metrics.completionTokens,
-          durationMs: metrics.durationMs,
+          outputTokens: finiteInt(metrics.completionTokens),
+          durationMs: finite(metrics.durationMs),
         });
         break;
       }
@@ -259,7 +267,7 @@ export class Tracker {
           type: "tts_ttfb",
           turnId,
           provider: metrics.metadata?.modelProvider ?? this.providers.tts[0] ?? "unknown",
-          latencyMs: metrics.ttfbMs,
+          latencyMs: finite(metrics.ttfbMs),
         });
         break;
       }

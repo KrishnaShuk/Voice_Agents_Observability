@@ -11,8 +11,9 @@ export interface SpanLike {
 }
 
 export interface SpanProcessorLike {
-  onStart?(span: SpanLike, parentContext: unknown): void;
+  onStart(span: SpanLike, parentContext: unknown): void;
   onEnd(span: ReadableSpanLike): void;
+  onEnding?(span: ReadableSpanLike): void;
   shutdown(): Promise<void>;
   forceFlush(): Promise<void>;
 }
@@ -57,8 +58,15 @@ export function parseSpan(span: ReadableSpanLike): ParsedSpan {
 
 export function createSpanProcessor(onSpan?: (span: ParsedSpan) => void): SpanProcessorLike {
   return {
+    onStart(): void {
+      // no-op: spans are recorded on end
+    },
     onEnd(span: ReadableSpanLike): void {
-      onSpan?.(parseSpan(span));
+      try {
+        onSpan?.(parseSpan(span));
+      } catch {
+        // never throw into the telemetry pipeline
+      }
     },
     async shutdown(): Promise<void> {},
     async forceFlush(): Promise<void> {},

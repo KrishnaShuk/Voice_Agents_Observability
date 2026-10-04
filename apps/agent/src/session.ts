@@ -11,6 +11,7 @@ export async function startSession(ctx: JobContext): Promise<Tracker> {
     llm: providers.llm,
     tts: providers.tts,
     vad: providers.vad,
+    turnHandling: { turnDetection: "vad" },
   });
 
   const tracker = createTracker({

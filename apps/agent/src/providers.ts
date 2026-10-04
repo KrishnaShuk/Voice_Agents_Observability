@@ -13,17 +13,33 @@ export interface Providers {
   names: Record<Stage, string[]>;
 }
 
+function buildTts(): { tts: ttsNs.TTS; name: string } {
+  const provider = (process.env.TTS_PROVIDER ?? "deepgram").toLowerCase();
+  if (provider === "elevenlabs") {
+    return {
+      tts: new elevenlabs.TTS({
+        apiKey: process.env.ELEVEN_API_KEY,
+        voiceId: process.env.ELEVEN_VOICE_ID,
+      }),
+      name: "elevenlabs",
+    };
+  }
+  return {
+    tts: new deepgram.TTS({ apiKey: process.env.DEEPGRAM_API_KEY }),
+    name: "deepgram-aura",
+  };
+}
+
 export async function buildProviders(): Promise<Providers> {
+  const model = process.env.LLM_MODEL ?? "qwen/qwen3.8-27b";
+
   const stt = new deepgram.STT();
   const llm = new openai.LLM({
-    model: process.env.LLM_MODEL ?? "llama-3.1-8b-instant",
+    model,
     baseURL: process.env.LLM_BASE_URL ?? "https://api.groq.com/openai/v1",
     apiKey: process.env.GROQ_API_KEY,
   });
-  const tts = new elevenlabs.TTS({
-    apiKey: process.env.ELEVEN_API_KEY,
-    voiceId: process.env.ELEVEN_VOICE_ID,
-  });
+  const { tts, name: ttsName } = buildTts();
   const vad = await silero.VAD.load();
 
   return {
@@ -33,8 +49,8 @@ export async function buildProviders(): Promise<Providers> {
     vad,
     names: {
       stt: ["deepgram"],
-      llm: [process.env.LLM_MODEL ?? "groq"],
-      tts: ["elevenlabs"],
+      llm: [model],
+      tts: [ttsName],
     },
   };
 }

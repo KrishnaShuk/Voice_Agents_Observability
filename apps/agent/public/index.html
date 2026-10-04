@@ -63,7 +63,10 @@
       document.getElementById("join").addEventListener("click", async (event) => {
         event.target.disabled = true;
         try {
-          const res = await fetch("/token");
+          const roomName =
+            new URLSearchParams(location.search).get("room") ??
+            `voxobs-${Math.random().toString(36).slice(2, 8)}`;
+          const res = await fetch(`/token?room=${encodeURIComponent(roomName)}`);
           if (!res.ok) throw new Error(`token request failed: ${res.status}`);
           const { token, url } = await res.json();
 
@@ -75,7 +78,7 @@
 
           await room.connect(url, token);
           await room.localParticipant.setMicrophoneEnabled(true);
-          log("joined — speak now");
+          log(`joined room ${roomName} — speak now`);
         } catch (err) {
           log(`error: ${err}`);
           event.target.disabled = false;

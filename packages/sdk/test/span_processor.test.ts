@@ -30,6 +30,12 @@ describe("parseSpan", () => {
 });
 
 describe("createSpanProcessor", () => {
+  it("implements onStart so LiveKit's fanout never throws", () => {
+    const processor = createSpanProcessor();
+    expect(typeof processor.onStart).toBe("function");
+    expect(() => processor.onStart({ name: "x" }, undefined)).not.toThrow();
+  });
+
   it("forwards parsed spans on end", () => {
     const seen: string[] = [];
     const processor = createSpanProcessor((span) => seen.push(span.name));
