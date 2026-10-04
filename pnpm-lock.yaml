@@ -44,6 +44,9 @@ importers:
       '@livekit/agents-plugin-silero':
         specifier: ^1.9.1
         version: 1.9.1(@livekit/agents@1.9.1(@livekit/rtc-node@1.1.0)(@types/node@20.19.43)(typescript@5.9.3)(zod@3.25.76))(@livekit/rtc-node@1.1.0)
+      '@voxobs/failover':
+        specifier: workspace:*
+        version: link:../../packages/failover
       '@voxobs/schema':
         specifier: workspace:*
         version: link:../../packages/schema
@@ -144,7 +147,14 @@ importers:
         version: 5.9.3
 
   packages/failover:
+    dependencies:
+      '@voxobs/schema':
+        specifier: workspace:*
+        version: link:../schema
     devDependencies:
+      '@livekit/agents':
+        specifier: ^1.9.1
+        version: 1.9.1(@livekit/rtc-node@1.1.0)(@types/node@20.19.43)(typescript@5.9.3)(zod@3.25.76)
       '@types/node':
         specifier: ^20.17.10
         version: 20.19.43

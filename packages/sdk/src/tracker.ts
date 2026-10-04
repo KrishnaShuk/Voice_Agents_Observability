@@ -5,7 +5,7 @@ import type {
   UserInputTranscribedEvent,
   UserStateChangedEvent,
 } from "@livekit/agents";
-import type { Stage, VoiceEvent, VoiceEventDraft } from "@voxobs/schema";
+import type { EmittableDraft, Stage, VoiceEvent, VoiceEventDraft } from "@voxobs/schema";
 import { WsTransport, type WsFactory } from "./transport.js";
 import { monotonicNow, wallNow, type MonotonicClock, type WallClock } from "./clock.js";
 
@@ -15,7 +15,7 @@ export interface TrackerSession {
 }
 
 export interface TrackerSink {
-  emit(draft: VoiceEventDraft): VoiceEvent;
+  emit(draft: EmittableDraft): VoiceEvent;
 }
 
 export interface TrackerOptions {
@@ -33,6 +33,22 @@ export interface TrackerOptions {
 }
 
 const DEFAULT_PROVIDERS: Record<Stage, string[]> = { stt: [], llm: [], tts: [] };
+
+const TURN_SCOPED = new Set<string>([
+  "turn_start",
+  "speech_end",
+  "eou_delay",
+  "stt_latency",
+  "llm_ttft",
+  "llm_end",
+  "tts_ttfb",
+  "agent_audio_start",
+  "turn_end",
+  "barge_in",
+  "provider_degraded",
+  "provider_failure",
+  "failover",
+]);
 
 function finite(value: unknown, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
@@ -138,14 +154,18 @@ export class Tracker {
     this.transport.close();
   }
 
-  emit(draft: VoiceEventDraft, atOffset?: number): VoiceEvent {
+  emit(draft: EmittableDraft | VoiceEventDraft, atOffset?: number): VoiceEvent {
+    const needsTurn = TURN_SCOPED.has(draft.type) && !("turnId" in draft);
+    const withTurn = needsTurn
+      ? { ...(draft as object), turnId: this.currentTurnId ?? this.openTurn() }
+      : draft;
     const event = {
       eventId: crypto.randomUUID(),
       sessionId: this.sessionId,
       seq: this.seq,
       tOffsetMs: atOffset ?? this.offset(),
       timestamp: this.wall(),
-      ...draft,
+      ...withTurn,
     } as VoiceEvent;
     this.seq += 1;
     this.transport.send(event);

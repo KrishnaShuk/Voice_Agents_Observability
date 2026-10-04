@@ -149,6 +149,22 @@ type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K>
 
 export type VoiceEventDraft = DistributiveOmit<VoiceEvent, keyof VoiceEventBase>;
 
+export type ProviderEvent = Extract<
+  VoiceEvent,
+  { type: "provider_failure" | "provider_degraded" | "failover" | "provider_recovered" }
+>;
+
+/**
+ * A provider/failover event without the envelope or turn id. The tracker owns the
+ * turn, so `observe()` emits these and the tracker stamps `turnId`.
+ */
+export type ProviderEventDraft = DistributiveOmit<
+  ProviderEvent,
+  keyof VoiceEventBase | "turnId"
+>;
+
+export type EmittableDraft = VoiceEventDraft | ProviderEventDraft;
+
 export type VoiceEventType = VoiceEvent["type"];
 
 export function parseEvent(data: unknown): VoiceEvent {
