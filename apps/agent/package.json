@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx src/index.ts dev",
-    "start": "tsx src/index.ts start",
-    "web": "tsx src/web.ts",
+    "dev": "tsx --env-file-if-exists=../../.env src/index.ts dev",
+    "start": "tsx --env-file-if-exists=../../.env src/index.ts start",
+    "web": "tsx --env-file-if-exists=../../.env src/web.ts",
     "download-files": "tsx src/index.ts download-files",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
