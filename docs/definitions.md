@@ -95,8 +95,8 @@ after `speaking`). `speech_end`, `eou_delay`, `stt_latency`, `llm_ttft`,
 |---|---|
 | `session_start.agentVersion`, `providers` | tracker options |
 | `turn_start`, `turn_end` | user/agent state transitions |
-| `speech_end` | `user_state_changed → listening` (VAD-driven) |
-| `stt_latency` | SDK: `speech_end` → final `user_input_transcribed` |
+| `speech_end` | `eou_metrics`: emit time − `endOfUtteranceDelayMs` (backdated VAD speech end) |
+| `stt_latency` | `eou_metrics.transcriptionDelayMs` (fallback: transcript arrival − `speech_end`) |
 | `eou_delay` | `eou_metrics.endOfUtteranceDelayMs` |
 | `llm_ttft`, `promptTokens` | `llm_metrics.ttftMs`, `.promptTokens` |
 | `llm_end`, `outputTokens` | `llm_metrics.durationMs`, `.completionTokens` |
@@ -104,4 +104,11 @@ after `speaking`). `speech_end`, `eou_delay`, `stt_latency`, `llm_ttft`,
 | `provider`, `model` | `metrics.metadata` (fallback: configured providers) |
 | `agent_audio_start` | `agent_state_changed → speaking` |
 | PII stripping | span processor dropping `lk.pii.*` attributes |
+
+> **Deviation (stt_latency).** The Plan defines `stt_latency` as an SDK-computed
+> `speech_end → final transcript`. In `agents-js@1.9.1` the `user_state_changed →
+> listening` signal fires *after* the final transcript, so the SDK-computed value
+> was always 0. The native `EOUMetrics.transcriptionDelayMs` measures exactly
+> "time to obtain the transcript after end of speech", so we use it, and backdate
+> `speech_end` from `endOfUtteranceDelayMs`. Reconcile in M9.
 

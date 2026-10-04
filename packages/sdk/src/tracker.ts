@@ -61,6 +61,7 @@ export class Tracker {
 
   private currentTurnId: string | null = null;
   private speechEndOffsetMs: number | null = null;
+  private pendingTranscriptOffset: number | null = null;
   private turnStartOffsetMs = 0;
   private readonly speechToTurn = new Map<string, string>();
   private lastAgentState = "idle";
@@ -137,12 +138,12 @@ export class Tracker {
     this.transport.close();
   }
 
-  emit(draft: VoiceEventDraft): VoiceEvent {
+  emit(draft: VoiceEventDraft, atOffset?: number): VoiceEvent {
     const event = {
       eventId: crypto.randomUUID(),
       sessionId: this.sessionId,
       seq: this.seq,
-      tOffsetMs: this.offset(),
+      tOffsetMs: atOffset ?? this.offset(),
       timestamp: this.wall(),
       ...draft,
     } as VoiceEvent;
@@ -177,6 +178,7 @@ export class Tracker {
     this.emit({ type: "turn_end", turnId: this.currentTurnId });
     this.currentTurnId = null;
     this.speechEndOffsetMs = null;
+    this.pendingTranscriptOffset = null;
   }
 
   private turnForSpeech(speechId: string | undefined): string {
@@ -190,25 +192,14 @@ export class Tracker {
   }
 
   private onUserState(event: UserStateChangedEvent): void {
-    if (event.newState === "speaking") {
-      if (!this.currentTurnId) this.openTurn();
-    } else if (event.newState === "listening" && event.oldState === "speaking") {
-      const turnId = this.currentTurnId ?? this.openTurn();
-      this.speechEndOffsetMs = this.offset();
-      this.emit({ type: "speech_end", turnId });
+    if (event.newState === "speaking" && !this.currentTurnId) {
+      this.openTurn();
     }
   }
 
   private onUserInputTranscribed(event: UserInputTranscribedEvent): void {
     if (!event.isFinal || event.transcript.length === 0) return;
-    const turnId = this.openTurn();
-    const endOffset = this.speechEndOffsetMs ?? this.offset();
-    this.emit({
-      type: "stt_latency",
-      turnId,
-      provider: this.providers.stt[0] ?? "unknown",
-      latencyMs: Math.max(0, this.offset() - endOffset),
-    });
+    this.pendingTranscriptOffset = this.offset();
   }
 
   private onAgentState(event: AgentStateChangedEvent): void {
@@ -236,8 +227,28 @@ export class Tracker {
   private onMetric(metrics: AgentMetrics): void {
     switch (metrics.type) {
       case "eou_metrics": {
-        const turnId = this.openTurn();
-        this.emit({ type: "eou_delay", turnId, delayMs: finite(metrics.endOfUtteranceDelayMs) });
+        const turnId = this.turnForSpeech(metrics.speechId);
+        const eouDelay = finite(metrics.endOfUtteranceDelayMs);
+        const speechEndOffset = Math.max(0, this.offset() - eouDelay);
+        this.speechEndOffsetMs = speechEndOffset;
+
+        let sttDelay = finite(metrics.transcriptionDelayMs);
+        if (sttDelay <= 0 && this.pendingTranscriptOffset !== null) {
+          sttDelay = Math.max(0, this.pendingTranscriptOffset - speechEndOffset);
+        }
+
+        this.emit({ type: "speech_end", turnId }, speechEndOffset);
+        this.emit(
+          {
+            type: "stt_latency",
+            turnId,
+            provider: this.providers.stt[0] ?? "unknown",
+            latencyMs: sttDelay,
+          },
+          speechEndOffset + sttDelay,
+        );
+        this.emit({ type: "eou_delay", turnId, delayMs: eouDelay });
+        this.pendingTranscriptOffset = null;
         break;
       }
       case "llm_metrics": {

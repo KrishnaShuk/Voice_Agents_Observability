@@ -148,7 +148,7 @@ describe("Tracker", () => {
     expect(stt && "latencyMs" in stt ? stt.latencyMs : -1).toBe(200);
 
     const audio = transport.events.find((event) => event.type === "agent_audio_start");
-    expect(audio && "voiceToVoiceMs" in audio ? audio.voiceToVoiceMs : -1).toBe(705);
+    expect(audio && "voiceToVoiceMs" in audio ? audio.voiceToVoiceMs : -1).toBe(620);
 
     const seqs = transport.events.map((event) => event.seq);
     expect(seqs).toEqual([...seqs].sort((a, b) => a - b));
