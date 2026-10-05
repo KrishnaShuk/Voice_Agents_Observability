@@ -153,7 +153,8 @@ main {
   padding: 0 4px;
   opacity: 0.9;
 }
-.seg-eou { background: var(--eou); }
+.seg-eou { background: var(--eou); top: 1px; height: 5px; padding: 0; }
+.seg-eou span { display: none; }
 .seg-stt { background: var(--stt); }
 .seg-llm { background: var(--llm); }
 .seg-tts { background: var(--tts); }

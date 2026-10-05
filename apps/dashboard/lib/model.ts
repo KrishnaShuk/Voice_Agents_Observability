@@ -31,8 +31,11 @@ export interface Turn {
   voiceToVoiceMs: number | null;
   bargeInMs: number | null;
   degraded: { provider: string; metric: string; observedMs: number; thresholdMs: number } | null;
+  degradedAtMs: number | null;
   failure: { provider: string; reason: string } | null;
+  failureAtMs: number | null;
   failover: { fromProvider: string; toProvider: string; trigger: string; recoveryMs: number } | null;
+  failoverAtMs: number | null;
 }
 
 export interface SessionModel {
@@ -72,8 +75,11 @@ function emptyTurn(turnId: string, startMs: number): Turn {
     voiceToVoiceMs: null,
     bargeInMs: null,
     degraded: null,
+    degradedAtMs: null,
     failure: null,
+    failureAtMs: null,
     failover: null,
+    failoverAtMs: null,
   };
 }
 
@@ -133,9 +139,11 @@ export function applyEvent(model: SessionModel, event: VoiceEvent): SessionModel
         observedMs: event.observedMs,
         thresholdMs: event.thresholdMs,
       };
+      turn.degradedAtMs = t;
       break;
     case "provider_failure":
       turn.failure = { provider: event.provider, reason: event.reason };
+      turn.failureAtMs = t;
       break;
     case "failover":
       turn.failover = {
@@ -144,6 +152,7 @@ export function applyEvent(model: SessionModel, event: VoiceEvent): SessionModel
         trigger: event.trigger,
         recoveryMs: event.recoveryMs,
       };
+      turn.failoverAtMs = t;
       break;
     default:
       break;
@@ -176,15 +185,19 @@ export function turnMarkers(turn: Turn): Marker[] {
   const markers: Marker[] = [];
   const anchor = turn.speechEndMs ?? turn.startMs;
   if (turn.degraded) {
-    markers.push({ kind: "degraded", tMs: anchor, label: `${turn.degraded.metric} ${turn.degraded.observedMs.toFixed(0)}ms` });
+    markers.push({
+      kind: "degraded",
+      tMs: turn.degradedAtMs ?? anchor,
+      label: `${turn.degraded.metric} ${turn.degraded.observedMs.toFixed(0)}ms`,
+    });
   }
   if (turn.failure) {
-    markers.push({ kind: "failure", tMs: anchor, label: turn.failure.reason });
+    markers.push({ kind: "failure", tMs: turn.failureAtMs ?? anchor, label: turn.failure.reason });
   }
   if (turn.failover) {
     markers.push({
       kind: "failover",
-      tMs: turn.audioStartMs ?? anchor,
+      tMs: turn.failoverAtMs ?? anchor,
       label: `${turn.failover.fromProvider}→${turn.failover.toProvider} ${turn.failover.recoveryMs.toFixed(0)}ms`,
     });
   }
