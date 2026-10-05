@@ -1,5 +1,5 @@
 import type { Turn } from "../lib/model";
-import { turnMarkers, turnSegments } from "../lib/model";
+import { turnDomain, turnMarkers, turnSegments } from "../lib/model";
 
 const SEGMENT_LABEL: Record<string, string> = { eou: "EOU", stt: "STT", llm: "LLM", tts: "TTS" };
 
@@ -28,10 +28,7 @@ export function Timeline({ turns }: { turns: Turn[] }) {
 function TurnRow({ turn, index }: { turn: Turn; index: number }) {
   const segments = turnSegments(turn);
   const markers = turnMarkers(turn);
-
-  const segmentEnds = segments.map((segment) => segment.endMs);
-  const end = turn.endMs ?? Math.max(turn.audioStartMs ?? turn.startMs, ...segmentEnds, turn.startMs + 500);
-  const start = turn.startMs;
+  const { startMs: start, endMs: end } = turnDomain(turn);
   const span = Math.max(1, end - start);
 
   const left = (ms: number) => `${Math.min(100, Math.max(0, ((ms - start) / span) * 100))}%`;

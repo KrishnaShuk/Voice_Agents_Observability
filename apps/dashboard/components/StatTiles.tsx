@@ -1,16 +1,15 @@
-import { latestTurn, type SessionModel } from "../lib/model";
+import { lastValue, type SessionModel } from "../lib/model";
 
 function value(input: number | null | undefined): string {
   return input === null || input === undefined ? "—" : String(Math.round(input));
 }
 
 export function StatTiles({ model }: { model: SessionModel }) {
-  const turn = latestTurn(model);
   const tiles = [
-    { label: "STT latency", value: turn?.sttLatencyMs },
-    { label: "LLM TTFT", value: turn?.llmTtftMs },
-    { label: "TTS TTFB", value: turn?.ttsTtfbMs },
-    { label: "Voice→voice", value: turn?.voiceToVoiceMs },
+    { label: "STT latency", value: lastValue(model, (turn) => turn.sttLatencyMs) },
+    { label: "LLM TTFT", value: lastValue(model, (turn) => turn.llmTtftMs) },
+    { label: "TTS TTFB", value: lastValue(model, (turn) => turn.ttsTtfbMs) },
+    { label: "Voice→voice", value: lastValue(model, (turn) => turn.voiceToVoiceMs) },
   ];
 
   return (

@@ -194,18 +194,41 @@ export function turnMarkers(turn: Turn): Marker[] {
   return markers;
 }
 
+export function turnDomain(turn: Turn): { startMs: number; endMs: number } {
+  const segments = turnSegments(turn);
+  const starts = [turn.startMs, ...segments.map((s) => s.startMs), ...turnMarkers(turn).map((m) => m.tMs)];
+  const ends = [
+    turn.endMs ?? turn.startMs,
+    turn.audioStartMs ?? turn.startMs,
+    ...segments.map((s) => s.endMs),
+  ];
+  const startMs = Math.min(...starts);
+  const endMs = Math.max(...ends, startMs + 300);
+  return { startMs, endMs };
+}
+
 export function sessionDurationMs(model: SessionModel): number {
   let max = model.startMs;
   for (const turn of model.turns) {
-    for (const value of [turn.endMs, turn.audioStartMs, turn.llmEndMs, turn.speechEndMs]) {
-      if (value !== null && value > max) max = value;
-    }
+    const domain = turnDomain(turn);
+    if (domain.endMs > max) max = domain.endMs;
   }
   return Math.max(1000, max - model.startMs + 300);
 }
 
 export function latestTurn(model: SessionModel): Turn | null {
   return model.turns.length > 0 ? (model.turns[model.turns.length - 1] as Turn) : null;
+}
+
+export function lastValue(
+  model: SessionModel,
+  pick: (turn: Turn) => number | null,
+): number | null {
+  for (let i = model.turns.length - 1; i >= 0; i -= 1) {
+    const value = pick(model.turns[i] as Turn);
+    if (value !== null) return value;
+  }
+  return null;
 }
 
 export function voiceToVoiceSeries(model: SessionModel): number[] {
