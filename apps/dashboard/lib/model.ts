@@ -58,6 +58,39 @@ export function createSession(event: Extract<VoiceEvent, { type: "session_start"
   };
 }
 
+export function stubSession(event: VoiceEvent): SessionModel {
+  return {
+    sessionId: event.sessionId,
+    agentVersion: "unknown",
+    providers: { stt: [], llm: [], tts: [] },
+    startMs: event.tOffsetMs,
+    endReason: null,
+    turns: [],
+  };
+}
+
+export function sortByTime(events: VoiceEvent[]): VoiceEvent[] {
+  return [...events].sort((a, b) => a.tOffsetMs - b.tOffsetMs || a.seq - b.seq);
+}
+
+/** Rebuild a session from stored events, optionally truncated at `cursorMs` (replay). */
+export function buildSession(
+  events: VoiceEvent[],
+  cursorMs = Number.POSITIVE_INFINITY,
+): SessionModel | null {
+  let model: SessionModel | null = null;
+  for (const event of sortByTime(events)) {
+    if (event.tOffsetMs > cursorMs) break;
+    if (event.type === "session_start") {
+      model = createSession(event);
+      continue;
+    }
+    if (model === null) model = stubSession(event);
+    model = applyEvent(model, event);
+  }
+  return model;
+}
+
 function emptyTurn(turnId: string, startMs: number): Turn {
   return {
     turnId,

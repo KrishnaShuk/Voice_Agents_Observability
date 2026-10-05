@@ -35,24 +35,110 @@ main {
 
 .app-header {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  align-items: center;
   gap: 16px;
   border-bottom: 1px solid var(--border);
   padding-bottom: 12px;
   margin-bottom: 20px;
 }
 
-.app-header h1 {
+.app-title {
   font-size: 15px;
   font-weight: 600;
-  margin: 0;
+}
+
+.brand {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.dim {
+  color: var(--muted);
+}
+
+.nav {
+  display: flex;
+  gap: 12px;
+  margin-right: auto;
+}
+
+.nav a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.nav a:hover {
+  color: var(--text);
 }
 
 .app-header .meta {
   color: var(--muted);
   font-size: 12px;
   text-align: right;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table th {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.table a {
+  color: var(--llm);
+  text-decoration: none;
+}
+
+.badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 10px;
+  color: var(--muted);
+  margin-left: 6px;
+}
+
+.badge-failover {
+  color: var(--green);
+  border-color: var(--green);
+}
+
+.replay-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.replay-controls input[type="range"] {
+  flex: 1;
+  accent-color: var(--llm);
+}
+
+.replay-controls button {
+  font: inherit;
+  background: #1b2230;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.replay-controls button:hover {
+  background: #232c3d;
 }
 
 .status-dot {

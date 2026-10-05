@@ -46,6 +46,16 @@ export function createIngestServer(options: IngestServerOptions): IngestServer {
 
   const app = express();
   app.use(express.json({ limit: "5mb" }));
+  app.use((req, res, next) => {
+    res.setHeader("access-control-allow-origin", "*");
+    res.setHeader("access-control-allow-headers", "content-type, x-api-key, x-injection-token");
+    res.setHeader("access-control-allow-methods", "GET, POST, OPTIONS");
+    if (req.method === "OPTIONS") {
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  });
 
   const live = new LiveBroadcaster();
   const ingestWss = new WebSocketServer({ noServer: true });

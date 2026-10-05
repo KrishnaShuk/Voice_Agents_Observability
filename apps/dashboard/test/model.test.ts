@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import type { VoiceEvent } from "@voxobs/schema";
 import {
   applyEvent,
+  buildSession,
   createSession,
   sessionDurationMs,
   turnMarkers,
@@ -108,5 +109,23 @@ describe("session model", () => {
     ]);
     expect(voiceToVoiceSeries(model)).toEqual([1200, 900]);
     expect(sessionDurationMs(model)).toBeGreaterThanOrEqual(9000);
+  });
+
+  it("rebuilds a session truncated at a replay cursor", () => {
+    const events: VoiceEvent[] = [
+      ev({ type: "session_start", agentVersion: "1", providers: { stt: [], llm: [], tts: [] } }),
+      ev({ type: "turn_start", turnId: "t1", tOffsetMs: 1000 }),
+      ev({ type: "speech_end", turnId: "t1", tOffsetMs: 2000 }),
+      ev({ type: "agent_audio_start", turnId: "t1", tOffsetMs: 3000, voiceToVoiceMs: 1000, source: "state_change" }),
+      ev({ type: "turn_end", turnId: "t1", tOffsetMs: 4000 }),
+    ];
+
+    const full = buildSession(events);
+    expect(full?.turns[0]?.endMs).toBe(4000);
+
+    const partial = buildSession(events, 2500);
+    expect(partial?.turns[0]?.speechEndMs).toBe(2000);
+    expect(partial?.turns[0]?.audioStartMs).toBeNull();
+    expect(partial?.turns[0]?.endMs).toBeNull();
   });
 });
