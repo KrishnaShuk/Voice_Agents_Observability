@@ -1,28 +1,37 @@
+import type { Turn } from "../lib/model";
 import { lastValue, type SessionModel } from "../lib/model";
 
-function value(input: number | null | undefined): string {
-  return input === null || input === undefined ? "—" : String(Math.round(input));
+function value(input: number | null): string {
+  return input === null ? "—" : String(Math.round(input));
+}
+
+function previousValue(model: SessionModel, pick: (turn: Turn) => number | null): number | null {
+  let seenLatest = false;
+  for (let i = model.turns.length - 1; i >= 0; i -= 1) {
+    const candidate = pick(model.turns[i]!);
+    if (candidate === null) continue;
+    if (seenLatest) return candidate;
+    seenLatest = true;
+  }
+  return null;
 }
 
 export function StatTiles({ model }: { model: SessionModel }) {
-  const tiles = [
-    { label: "STT latency", value: lastValue(model, (turn) => turn.sttLatencyMs) },
-    { label: "LLM TTFT", value: lastValue(model, (turn) => turn.llmTtftMs) },
-    { label: "TTS TTFB", value: lastValue(model, (turn) => turn.ttsTtfbMs) },
-    { label: "Voice→voice", value: lastValue(model, (turn) => turn.voiceToVoiceMs) },
+  const definitions = [
+    { label: "STT latency", pick: (turn: Turn) => turn.sttLatencyMs },
+    { label: "LLM TTFT", pick: (turn: Turn) => turn.llmTtftMs },
+    { label: "TTS TTFB", pick: (turn: Turn) => turn.ttsTtfbMs },
+    { label: "Voice→voice", pick: (turn: Turn) => turn.voiceToVoiceMs },
   ];
 
   return (
     <div className="tiles">
-      {tiles.map((tile) => (
-        <div className="tile" key={tile.label}>
-          <div className="tile-label">{tile.label}</div>
-          <div className="tile-value">
-            {value(tile.value)}
-            {tile.value !== null && tile.value !== undefined ? <span className="tile-unit">ms</span> : null}
-          </div>
-        </div>
-      ))}
+      {definitions.map((definition) => {
+        const current = lastValue(model, definition.pick);
+        const previous = previousValue(model, definition.pick);
+        const delta = current !== null && previous !== null ? current - previous : null;
+        return <div className="tile" key={definition.label}><div className="tile-label">{definition.label}</div><div className="tile-value">{value(current)}{current !== null ? <span className="tile-unit">ms</span> : null}</div><div className={`tile-delta ${delta !== null && delta > 0 ? "is-higher" : ""}`}>{delta === null ? "no previous turn" : `${delta > 0 ? "↑" : delta < 0 ? "↓" : "–"} ${Math.abs(Math.round(delta))} ms vs prior`}</div></div>;
+      })}
     </div>
   );
 }

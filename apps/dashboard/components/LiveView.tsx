@@ -58,7 +58,7 @@ export function LiveView() {
 
       <div className="panel">
         <h2>turn timeline</h2>
-        <Timeline turns={model.turns} />
+        <Timeline turns={model.turns} domainStartMs={model.startMs} />
       </div>
 
       <div className="panel">

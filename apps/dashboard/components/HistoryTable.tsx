@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { fetchSessions, type SessionSummary } from "../lib/api";
 import { AppHeader } from "./AppHeader";
@@ -22,22 +22,26 @@ export function HistoryTable() {
   const [sessions, setSessions] = useState<SessionSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchSessions()
-      .then(setSessions)
-      .catch((err) => setError(String(err)));
+  const load = useCallback(() => {
+    setError(null);
+    setSessions(null);
+    fetchSessions().then(setSessions).catch((err) => setError(String(err)));
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return (
     <main>
       <AppHeader title="history" />
       <div className="panel">
         {error ? (
-          <div className="empty">failed to load sessions: {error}</div>
+          <div className="empty"><p>couldn’t load sessions</p><p className="dim">check the ingest service, then try again.</p><button type="button" className="button" onClick={load}>retry</button></div>
         ) : sessions === null ? (
-          <div className="empty">loading…</div>
+          <div className="table-skeleton" aria-label="Loading sessions"><span /><span /><span /><span /><span /></div>
         ) : sessions.length === 0 ? (
-          <div className="empty">no sessions recorded yet</div>
+          <div className="empty"><p>no sessions recorded yet</p><p className="dim">start a call to populate this history.</p></div>
         ) : (
           <table className="table">
             <thead>
