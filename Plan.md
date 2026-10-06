@@ -349,3 +349,54 @@ Operational rules:
 - Every metric must have a definition in `docs/definitions.md` before it appears in the dashboard.
 - When something in this doc conflicts with what the code does, stop and flag it. Do not guess.
 - Write tests with each package; do not defer them.
+
+---
+
+## 11. Showcase & Resume Plan (status snapshot)
+
+> This section is about **presenting** the project, not the dependency-ordered plan
+> in sections 1–10. Keep it separate.
+
+### 11.1 Built and verified (M0–M7)
+
+| Milestone | State | Verified live |
+|---|---|---|
+| M0 foundations | done | `pnpm install && pnpm test` |
+| M1 schema | done | 13 tests |
+| M2 pipe (ingest + transport) | done | 14 tests + fake-events e2e |
+| M3 real events from a call | done | yes — real browser-mic call |
+| M4 failover package | code + 22 tests done | **no** — live wiring opt-in |
+| M5 live dashboard | done | yes — live feed + fake session |
+| M6 history + replay | done | yes — replay works |
+| M7 barge-in | done | yes — real interruption, `yieldMs` 440 ms |
+
+Total: 65 tests; lint/typecheck clean; `next build` passes.
+
+### 11.2 Resume cut — do vs skip
+
+**Do (high value):**
+1. **README + architecture diagram + a 30s GIF** of a live call with barge-in, and a forced `degraded → failover`.
+2. **Stabilise + enable failover** for the demo — it is the headline feature.
+3. Optional: **deploy** (M10) for a clickable live link (adds free-tier cold-start friction).
+
+**Skip / mark "roadmap":**
+- M8 benchmarks — real provider spend + time; recruiters won't read p99 tables.
+- M9 measurement-honesty research — niche; keep the flagged deviations only.
+- M11 npm publish — low signal.
+
+### 11.3 Known gaps (be honest in the README)
+
+- **Failover is opt-in** (`FAILOVER=1`). The guardrail tripped on a slow first TTS
+  request and cascaded (recovery-probe storm, no audio), so the single-provider path
+  is the default. The `@voxobs/failover` package + tests are complete; the live
+  stream integration needs tuning.
+- **TTS is Deepgram Aura** — the ElevenLabs key was scoped and the free plan blocks
+  library voices via the API.
+- Deviations in `docs/definitions.md`: turn boundaries from user/agent state (not the
+  `agent_turn` span); `stt_latency` from the EOU metric; `barge_in` source.
+- Local LiveKit runs in `--dev` with fixed keys (`devkey`/`secret`).
+
+### 11.4 Frontend
+
+The dashboard is functional but plain. A separate agent can take over UI polish;
+the handoff prompt lives in `docs/frontend-agent-brief.md`.
