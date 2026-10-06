@@ -103,6 +103,7 @@ after `speaking`). `speech_end`, `eou_delay`, `stt_latency`, `llm_ttft`,
 | `tts_ttfb` | `tts_metrics.ttfbMs` |
 | `provider`, `model` | `metrics.metadata` (fallback: configured providers) |
 | `agent_audio_start` | `agent_state_changed → speaking` |
+| `barge_in` | onset from `overlapping_speech` (adaptive) or `user_state → speaking` while the agent speaks (VAD); `yieldMs` = onset → `agent_state` stops speaking; suppressed by `agent_false_interruption` |
 | PII stripping | span processor dropping `lk.pii.*` attributes |
 
 > **Deviation (stt_latency).** The Plan defines `stt_latency` as an SDK-computed
@@ -111,4 +112,13 @@ after `speaking`). `speech_end`, `eou_delay`, `stt_latency`, `llm_ttft`,
 > was always 0. The native `EOUMetrics.transcriptionDelayMs` measures exactly
 > "time to obtain the transcript after end of speech", so we use it, and backdate
 > `speech_end` from `endOfUtteranceDelayMs`. Reconcile in M9.
+
+> **Deviation (barge_in).** The Plan sources `barge_in.yieldMs` from
+> `InterruptionMetrics`. That metric (`detectionDelay`, `numInterruptions`, …) does
+> not expose a yield time. We instead take the interruption onset from
+> `overlapping_speech.isInterruption` when the adaptive detector is active (cloud),
+> or from `user_state_changed → speaking` while the agent is speaking when it is not
+> (local VAD-based interruption, which is what a local LiveKit server provides), and
+> compute `yieldMs` as onset → `agent_state_changed` stops `speaking`.
+> `agent_false_interruption` suppresses the event. Reconcile in M9.
 

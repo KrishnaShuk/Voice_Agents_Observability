@@ -170,4 +170,55 @@ describe("Tracker", () => {
     tracker.attach(emitter as unknown as TrackerSession);
     expect(transport.events.filter((event) => event.type === "session_start")).toHaveLength(1);
   });
+
+  it("emits one barge_in with yieldMs when the user interrupts", () => {
+    const { emitter, tracker, transport, advance } = setup();
+    tracker.attach(emitter as unknown as TrackerSession);
+
+    advance(10);
+    emitter.emit("user_state_changed", { oldState: "listening", newState: "speaking" });
+    advance(500);
+    emitter.emit("agent_state_changed", { oldState: "thinking", newState: "speaking" });
+
+    advance(200);
+    emitter.emit("user_state_changed", { oldState: "listening", newState: "speaking" });
+    advance(80);
+    emitter.emit("agent_state_changed", { oldState: "speaking", newState: "listening" });
+
+    const bargeIns = transport.events.filter((event) => event.type === "barge_in");
+    expect(bargeIns).toHaveLength(1);
+    expect(bargeIns[0] && "yieldMs" in bargeIns[0] ? bargeIns[0].yieldMs : -1).toBe(80);
+  });
+
+  it("does not emit barge_in for a false interruption", () => {
+    const { emitter, tracker, transport, advance } = setup();
+    tracker.attach(emitter as unknown as TrackerSession);
+
+    advance(10);
+    emitter.emit("user_state_changed", { oldState: "listening", newState: "speaking" });
+    emitter.emit("agent_state_changed", { oldState: "thinking", newState: "speaking" });
+    advance(50);
+    emitter.emit("user_state_changed", { oldState: "listening", newState: "speaking" });
+    emitter.emit("agent_false_interruption", { resumed: true });
+    advance(50);
+    emitter.emit("agent_state_changed", { oldState: "speaking", newState: "listening" });
+
+    expect(transport.events.some((event) => event.type === "barge_in")).toBe(false);
+  });
+
+  it("uses overlapping_speech as the barge-in onset when available", () => {
+    const { emitter, tracker, transport, advance } = setup();
+    tracker.attach(emitter as unknown as TrackerSession);
+
+    advance(10);
+    emitter.emit("user_state_changed", { oldState: "listening", newState: "speaking" });
+    emitter.emit("agent_state_changed", { oldState: "thinking", newState: "speaking" });
+    emitter.emit("overlapping_speech", { isInterruption: true });
+    advance(120);
+    emitter.emit("agent_state_changed", { oldState: "speaking", newState: "listening" });
+
+    const bargeIns = transport.events.filter((event) => event.type === "barge_in");
+    expect(bargeIns).toHaveLength(1);
+    expect(bargeIns[0] && "yieldMs" in bargeIns[0] ? bargeIns[0].yieldMs : -1).toBe(120);
+  });
 });

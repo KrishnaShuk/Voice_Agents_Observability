@@ -78,6 +78,7 @@ export class Tracker {
   private currentTurnId: string | null = null;
   private speechEndOffsetMs: number | null = null;
   private pendingTranscriptOffset: number | null = null;
+  private bargeInAtMs: number | null = null;
   private turnStartOffsetMs = 0;
   private readonly speechToTurn = new Map<string, string>();
   private lastAgentState = "idle";
@@ -137,6 +138,8 @@ export class Tracker {
     this.bind(session, "agent_state_changed", (event) =>
       this.onAgentState(event as AgentStateChangedEvent),
     );
+    this.bind(session, "overlapping_speech", (event) => this.onOverlappingSpeech(event));
+    this.bind(session, "agent_false_interruption", () => this.onFalseInterruption());
 
     if (this.installTracing) {
       void import("./span_processor.js")
@@ -199,6 +202,7 @@ export class Tracker {
     this.currentTurnId = null;
     this.speechEndOffsetMs = null;
     this.pendingTranscriptOffset = null;
+    this.bargeInAtMs = null;
   }
 
   private turnForSpeech(speechId: string | undefined): string {
@@ -212,9 +216,25 @@ export class Tracker {
   }
 
   private onUserState(event: UserStateChangedEvent): void {
-    if (event.newState === "speaking" && !this.currentTurnId) {
-      this.openTurn();
+    if (event.newState === "speaking") {
+      // VAD-based barge-in: the user starts talking while the agent is speaking.
+      if (this.lastAgentState === "speaking" && this.bargeInAtMs === null) {
+        this.bargeInAtMs = this.offset();
+      }
+      if (!this.currentTurnId) this.openTurn();
     }
+  }
+
+  private onOverlappingSpeech(event: { isInterruption?: boolean }): void {
+    // Adaptive interruption detector (cloud) — authoritative when available.
+    if (event.isInterruption && this.bargeInAtMs === null) {
+      this.bargeInAtMs = this.offset();
+    }
+  }
+
+  private onFalseInterruption(): void {
+    // The "interruption" was noise; do not emit a barge-in.
+    this.bargeInAtMs = null;
   }
 
   private onUserInputTranscribed(event: UserInputTranscribedEvent): void {
@@ -236,6 +256,11 @@ export class Tracker {
         source: "state_change",
       });
     } else if (wasSpeaking && event.newState !== "speaking") {
+      if (this.bargeInAtMs !== null) {
+        const turnId = this.currentTurnId ?? this.openTurn();
+        this.emit({ type: "barge_in", turnId, yieldMs: Math.max(0, this.offset() - this.bargeInAtMs) });
+        this.bargeInAtMs = null;
+      }
       this.closeTurn();
     }
   }
